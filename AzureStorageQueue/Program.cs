@@ -31,6 +31,8 @@ namespace AzureStorageQueue
                 var response = await queueClient.ReceiveMessagesAsync(4);
                 foreach (var item in response.Value)
                 {
+                    //copied from msdn
+                    //If the message represents a work task, you could use this feature to update the status of the work task. The following code updates the queue message with new contents, and sets the visibility timeout to extend another 60 seconds. This saves the state of work associated with the message, and gives the client another minute to continue working on the message. You could use this technique to track multistep workflows on queue messages, without having to start over from the beginning if a processing step fails due to hardware or software failure. Typically, you would keep a retry count as well, and if the message is retried more than n times, you would delete it.
                     await queueClient.UpdateMessageAsync(item.MessageId, item.PopReceipt, "THIS IS NEW", TimeSpan.FromSeconds(20));
                 }
             }
@@ -62,9 +64,8 @@ namespace AzureStorageQueue
             if(await queueClient.ExistsAsync())
             {
                 //QueueMessage[] queueMessages = await queueClient.ReceiveMessagesAsync(4);
-                
-                var response = await queueClient.ReceiveMessagesAsync(4, TimeSpan.FromMinutes(5));
-                //this timespan will increase the visibility timeout 
+                var response = await queueClient.ReceiveMessagesAsync(4, TimeSpan.FromSeconds(5));
+                //this timespan will increase the visibility timeout, this is good for scenarios where you have a lot of work to do before deleting the message
 
                 foreach (var item in response.Value)
                 {
@@ -81,6 +82,7 @@ namespace AzureStorageQueue
 
             if (await queueClient.ExistsAsync())
             {
+                //Peek the count of messages as parameter.
                 PeekedMessage[] peekedMessages = await queueClient.PeekMessagesAsync(4);
                 foreach (var item in peekedMessages)
                 {
@@ -91,14 +93,13 @@ namespace AzureStorageQueue
         }
 
         private static  async Task CreateQueueClientAsync()
-        {
-            
+        { 
+            //this will create the queue if it does not exists
             await queueClient.CreateIfNotExistsAsync();
             if(await queueClient.ExistsAsync())
             {
                 Console.WriteLine($"queue {queueClient.Name} exists");
-
-                //sending a message to the queue
+                //sending messages to the queue
                 await queueClient.SendMessageAsync("this is my first message to the misraqueue");
                 await queueClient.SendMessageAsync("this is my second message to the misraqueue");
 
